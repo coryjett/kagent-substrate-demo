@@ -145,3 +145,53 @@ Related demo-ops gotchas, all hit live:
 - Helm `--timeout 10m` can trip on the controller/postgres startup race;
   `kubectl wait deploy/kagent-controller` and continue.
 - `kubectl scale workerpool` works but reverts on the next helm upgrade.
+
+## kagent 0.10 changes (verified against the live CRDs, 2026-09-09)
+
+Pins: kagent 0.10.1 (chart and controller image), substrate 0.0.9 (kagent
+0.10.x go.mod `replace` target). kagent main already vendors substrate v0.0.26.
+
+- **SandboxAgent runtimes are now `go` and `python`** (`spec.declarative.runtime`
+  enum, default go), and `spec.type` is `Declarative | BYO`. The 0.9 rule "only
+  the Go ADK runtime runs on substrate" is obsolete (kagent PR #2043).
+- **`spec.platform` is gone.** 0.9.9 required `platform: substrate` by CEL; 0.10
+  rejects it with `strict decoding error: unknown field "spec.platform"`.
+  Setting `spec.substrate` alone places the agent on substrate.
+- `spec.substrate` now has `workerPoolRef` and `snapshotsConfig`.
+- CEL on SandboxAgent: `spec.skills is not supported for sandbox agents`.
+- Declarative sandbox agents keep session state in a `durableDir` volume
+  (PR #2171). Actor readiness is gated on the app serving traffic (PR #2205).
+- AgentHarness backends are still `openclaw | hermes`; `spec.substrate` is
+  required by CEL.
+- **Provider credentials are secret references.** No `providers.<p>.apiKey`
+  value; create `kagent-anthropic` (key `ANTHROPIC_API_KEY`) before install,
+  set `providers.default=anthropic`.
+- Chart values still `controller.substrate.{enabled,ateApiEndpoint,ateApiInsecure}`
+  and `substrateWorkerPool.{create,replicas,ateomImage,sandboxClass}`. New:
+  `controller.substrate.atenetRouterURL`, `defaultWorkerPool`, `ateApiServer`.
+- The inventory route `GET /api/substrate/status` on `kagent-controller:8083`
+  is unchanged in shape; SandboxAgents still live on `/api/a2a-sandboxes/<ns>/<name>/`.
+
+## In-place substrate upgrade is not supported across 0.0.x (observed 0.0.8 -> 0.0.9, 2026-09-09)
+
+`helm upgrade` of the substrate chart succeeds and valkey stays `cluster_state:ok`,
+but the actor records already in valkey are protojson from the old schema:
+
+```
+while listing actors in db: in protojson.Unmarshal: proto: (line 1:2): unknown field "actorId"
+```
+
+Effects, all hit live:
+- `/api/substrate/status` returns `ateApiError` with `actors: null, workers: null`
+  (the CRD-backed workerPools and actorTemplates still list).
+- A chat fails after ~29s: `substrate ResumeActor "asr-...": rpc error: code =
+  Internal desc = grpc: error unmarshalling request: proto: cannot parse invalid
+  wire-format data`, and leaves a session actor record with an empty snapshot URI.
+- `kubectl delete sandboxagent` wedges on the `kagent.dev/sandbox-agent-substrate-cleanup`
+  finalizer: `delete substrate actor "asr-...": suspend actor "asr-...": rpc
+  error: code = InvalidArgument desc = invalid snapshot URI prefix "": missing bucket`.
+
+Remedy is a state reset: flush valkey (or rebuild the cluster with the lab
+script), remove the finalizer if it is still wedged, re-apply SandboxAgents so
+kagent re-bakes goldens under the new version. Snapshots in rustfs are orphaned.
+Treat 0.0.x substrate as rebuild-to-upgrade.

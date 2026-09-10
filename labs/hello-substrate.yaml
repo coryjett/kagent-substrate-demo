@@ -1,5 +1,6 @@
-# Declarative agent on Agent Substrate, model served by local Ollama
-# (providers.default=ollama at install → default-model-config points at it).
+# Minimal SandboxAgent for kagent 0.10.x + substrate 0.0.9.
+# spec.platform was removed in 0.10.0 (strict decoding rejects it); spec.substrate alone
+# places the agent on substrate. Validated against the live CRD 2026-09-09.
 apiVersion: kagent.dev/v1alpha2
 kind: SandboxAgent
 metadata:

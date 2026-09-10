@@ -5,7 +5,6 @@ metadata:
   namespace: kagent
 spec:
   type: Declarative
-  platform: substrate
   description: A friendly greeter running as a substrate actor
   declarative:
     runtime: go
@@ -23,7 +22,6 @@ metadata:
   namespace: kagent
 spec:
   type: Declarative
-  platform: substrate
   description: An incident scribe running as a substrate actor
   declarative:
     runtime: go
@@ -41,7 +39,6 @@ metadata:
   namespace: kagent
 spec:
   type: Declarative
-  platform: substrate
   description: A release notary running as a substrate actor
   declarative:
     runtime: go
@@ -59,7 +56,6 @@ metadata:
   namespace: kagent
 spec:
   type: Declarative
-  platform: substrate
   description: A cost warden running as a substrate actor
   declarative:
     runtime: go
@@ -77,7 +73,6 @@ metadata:
   namespace: kagent
 spec:
   type: Declarative
-  platform: substrate
   description: A drift sentinel running as a substrate actor
   declarative:
     runtime: go
@@ -95,7 +90,6 @@ metadata:
   namespace: kagent
 spec:
   type: Declarative
-  platform: substrate
   description: A chaos probe running as a substrate actor
   declarative:
     runtime: go
@@ -113,7 +107,6 @@ metadata:
   namespace: kagent
 spec:
   type: Declarative
-  platform: substrate
   description: An sre on-call assistant running as a substrate actor
   declarative:
     runtime: go
@@ -131,7 +124,6 @@ metadata:
   namespace: kagent
 spec:
   type: Declarative
-  platform: substrate
   description: A docs curator running as a substrate actor
   declarative:
     runtime: go
@@ -149,7 +141,6 @@ metadata:
   namespace: kagent
 spec:
   type: Declarative
-  platform: substrate
   description: A patch smith running as a substrate actor
   declarative:
     runtime: go
