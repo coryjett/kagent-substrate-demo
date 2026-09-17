@@ -13,8 +13,11 @@ docker stats --no-stream --format '{{.Name}} cpu={{.CPUPerc}} mem={{.MemUsage}}'
 kubectl --context kind-kagent-substrate get pods -n ate-system --no-headers | grep -cv -E 'Running|Completed'   # want 0
 kubectl --context kind-kagent-substrate get sandboxagents -n kagent   # want 9 Ready
 
-# 3. Ollama up
+# 3. Ollama up AND responsive (version alone can lie during a convoy)
 curl -s localhost:11434/api/version
+curl -s --max-time 30 localhost:11434/api/generate \
+  -d '{"model":"qwen3:4b","prompt":"say ok","stream":false,"options":{"num_predict":10}}' >/dev/null \
+  && echo "ollama responsive" || echo "CONVOY? -> brew services restart ollama"
 ```
 
 ## Start the rig (already running as of 2026-09-17 evening)
@@ -33,11 +36,18 @@ Traffic (second terminal, start ~2 min before showtime so bays are warm):
 
 ```bash
 cd ~/substrate-scope
-node stimulate.mjs --load 0.1 --oversub 2
+node stimulate.mjs --concurrency 2 --load 0.1
 ```
 
-Ollama pacing note: qwen3:4b turns run 30–60s, which makes bays visibly
-occupied — good for an audience. `--load 0.1` keeps most prompts short.
+**`--concurrency 2` is load-bearing on this rig.** This machine's Ollama serves
+ONE generation at a time (`-np 1`), so concurrent sessions convoy: 5 in flight
+means each waits for all the others, everything on the board looks frozen, and
+even a trivial probe times out. Two in flight keeps sessions at 25–60s (bays
+visibly occupied, good pacing) with no pileup. Symptom of a convoy: multiple
+agents Running for minutes + `curl localhost:11434/api/generate` hangs.
+Remedy: `brew services restart ollama` (stateless; in-flight sessions error
+out and checkpoint within ~30s), then scale the pool back down.
+
 Ollama is free; no budget needed. Ctrl-C or the board's STOP DEMO halts it.
 
 ## The 5 beats (~6 min)
