@@ -36,19 +36,19 @@ Traffic (second terminal, start ~2 min before showtime so bays are warm):
 
 ```bash
 cd ~/substrate-scope
-node stimulate.mjs --concurrency 2 --load 0.1
+node stimulate.mjs --budget 400 --load 0.5
 ```
 
-**`--concurrency 2` is load-bearing on this rig.** This machine's Ollama serves
-ONE generation at a time (`-np 1`), so concurrent sessions convoy: 5 in flight
-means each waits for all the others, everything on the board looks frozen, and
-even a trivial probe times out. Two in flight keeps sessions at 25–60s (bays
-visibly occupied, good pacing) with no pileup. Symptom of a convoy: multiple
-agents Running for minutes + `curl localhost:11434/api/generate` hangs.
-Remedy: `brew services restart ollama` (stateless; in-flight sessions error
-out and checkpoint within ~30s), then scale the pool back down.
+**Provider is Anthropic `claude-haiku-4-5`** (switched 2026-09-17 night). Real
+concurrency, ~1–2s replies, so the pool and autoscaler behave correctly:
+more workers genuinely means more throughput, and SURGE → autoscale-up is a
+real demo beat now. `--budget 400` caps spend (≈ a dollar; each session is a
+fraction of a cent) and flips STOP DEMO when hit — never leave it running
+uncapped. Ctrl-C or STOP DEMO halts within 2s.
 
-Ollama is free; no budget needed. Ctrl-C or the board's STOP DEMO halts it.
+> If you ever fall back to local Ollama: it serves ONE generation at a time
+> (`-np 1`), so cap `--concurrency 2` and expect 25–60s turns; more workers
+> make it WORSE, not better. That mismatch is why we run Anthropic for the demo.
 
 ## The 5 beats (~6 min)
 
